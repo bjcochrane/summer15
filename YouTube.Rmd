@@ -1,0 +1,22 @@
+---
+title: "YouTube Test"
+author: "Bruce Cochrane"
+date: "May 1, 2015"
+output: html_document
+---
+
+A quick test to see if we can embed video
+
+First, the McDonald Kreitman Test:
+
+
+<center>
+<iframe width="425" height="255" src="https://www.youtube.com/embed/aQXjpVkE-s4" frameborder="0" allowfullscreen></iframe>
+</center>
+
+Second, Tajima statistic
+
+<center>
+<iframe width="425" height="255" src="https://www.youtube.com/embed/wiyay4YMq2A" frameborder="0" allowfullscreen></iframe></center>
+
+And we go from there
