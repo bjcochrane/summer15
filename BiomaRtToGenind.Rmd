@@ -1,0 +1,152 @@
+---
+title: <center>BiomaRt data into genuine</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Rationale
+
+The genind object (part of adegenet) is clearly a useful structure - our goal needs to be (ultimately) to write a function that, given biomaRt attributes and filters, returns an appropriate genind object.  We will, of course, start with hapmap, but ultimately we want to generalize it to include other data.
+
+### The biomaRt piece.
+
+#### Installation
+
+Copied from an earlier script; comment out after running
+
+```{r}
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("biomaRt")
+```
+load package
+```{r}
+library(biomaRt)
+```
+Now, we need to create mart objects to use in our queries
+```{r}
+hap <-useMart("HapMap_rel27")
+snp <-useMart("snp")
+```
+Actually, what we need is only the hapmap set, at least for now.  The snp comes later when we want to find ancestral alleles.  But for our purposes, we should be able to do a filter on the hap data set.
+
+We need a list of the datasets:
+```{r}
+listDatasets(hap)
+```
+Now there are two routes to follow.  One is to use one population; the other is to use the combined set.  The latter would be cooler, however the former has its charm as well.
+
+#### Do it with the yri
+
+```{r}
+yri <-useMart("HapMap_rel27",dataset="hm27_variation_yri")
+listAttributes(yri)
+```
+Hmm.  what we need is a listing that has rows of individuals and columns of snp genotypes.  We need to look at the filters
+```{r}
+listFilters(yri)
+```
+```{r}
+yri.dat <-getBM(attributes=c("yri_id","marker1"),filters=c("chrom","start","stop"),values=list("chr3",10000000,10050000),mart=yri)
+```
+Ok.  So we're making some headway here.  There are 44 snps, one per row.  column 1 is all of the genotypes for that snp; column two are the names.  It's munging time!
+```{r}
+snp.names <-yri.dat[,2]
+head(snp.names)
+```
+Good.  Now the data matrix is in column 1.  
+```{r}
+yri.spl <-sapply(yri.dat[,1],strsplit," ")
+cols <-length(yri.spl)
+rows <-length(yri.spl[[1]])
+cols; rows
+```
+So that gives us a list, one element for each snp and a vector of genotypes within it.
+
+So to convert to a dataframe:
+
+```{r}
+yri.df <-do.call(cbind.data.frame, yri.spl)
+dim(yri.df)
+```
+
+Looking good, but let's check
+```{r}
+yri.df[,3]
+```
+
+```{r}
+yri.df[yri.df=="NN"] <-NA
+yri.df[1:5,1:5]
+```
+
+
+
+It almost looks like we could do it at this point (although we obviously need to clean up a bit)
+```{r}
+colnames(yri.df) <-snp.names
+yri.gen <-df2genind(yri.df,missing=NA,type="codom",ploidy=2,loc.names=snp.names)
+
+summary(yri.gen)
+```
+So this works, except that the data are weird - it looks for all the world like every locus has all four bases segregating, which makes no sense at all. 
+
+### Trying with all pops
+
+So we will now use the data set hm27_variation.
+
+```{r}
+mart.all <-useMart("HapMap_rel27",dataset="hm27_variation")
+listAttributes(mart.all)
+```
+And we can query with
+
+```{r}
+all.dat <-getBM(attributes=c("sample_id","pop_id","pop_code_genotype","marker1","genotype"),filters=c("chrom","start","stop"),values=list("chr3",10000000,10050000),mart=mart.all)
+```
+
+
+### Munging this.
+
+So each row returned contains data for a given SNP in a given population.
+
+Here's an idea.  What if we cbinded the genotype data
+
+```{r}
+geno.spl <-sapply(all.dat[,5],strsplit," ")
+```
+Then do the do.call to matrify
+```{r}
+geno.df <-do.call(rbind.data.frame,geno.spl)
+dim(geno.df)
+```
+
+```{r}
+Mydata <- read.table("./DATA/Master_Pinus_data_genotype.txt", header = TRUE)
+dim(Mydata) # Matrix of dimension 550x3086
+```
+```{r}
+locus <- Mydata[, -c(1,2,3,4,16:3086)]    
+ind <- as.character(Mydata$tree_id) # labels of the individuals
+population <- as.character(Mydata$state) # labels of the populations
+Mydata1 <- df2genind(locus,ploidy=2,ind.names=ind,pop=population)
+Mydata1
+Mydata1@loc.nall
+Mydata2 <- genind2hierfstat(Mydata1) 
+Mydata3 <- genind2loci(Mydata1)
+```
+```{r}
+div <- summary(Mydata1)
+div
+```
+OK.  So the problem is one of factorology.  In the case of the sample data, each column has three levels; in our case there are multiple
+```{r}
+yri.df[,1]
+```
+```{r}
+yri.spl[[1]]
+```
+
