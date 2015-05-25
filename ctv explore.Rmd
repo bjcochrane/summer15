@@ -1,0 +1,73 @@
+---
+title: "SSB Workshop on Comparative Methods"
+author: "Bruce Cochrane"
+date: "May 5, 2015"
+output: html_document
+---
+
+
+Code from Brian O'Meara
+```{r}
+#install.packages("ctv")
+```
+```{r}
+library(ctv)
+#install.views("Phylogenetics")
+```
+```{r}
+x <-available.views()
+print(x,packagelist=TRUE)
+```
+list the names of the views
+```{r}
+sapply(x, function(y) y$name)
+```
+Ok.  so the phylogeny package is element 23 on the list
+```{r}
+phylo <-x[[23]]
+str(phylo)
+```
+To get the list
+
+```{r}
+phylo.pkg <-phylo$packagelist
+phylo.pkg
+```
+And Genetics is number 11.  We can list the packages
+```{r}
+gpks <-x[[11]]$packagelist
+gpks
+```
+
+
+We should write this to a file so we can print it
+
+```{r}
+#write.csv(phylo.pkg,file="./Phyloview.pkg.csv",quote=FALSE,row.names=FALSE)
+```
+Here's a fun one - Paleotree
+```{r}
+library(paleotree)
+```
+```{r}
+taxa <- simFossilTaxa(p=0.1,q=0.05,nruns=1,mintaxa=20,maxtaxa=30,maxtime=1000,maxExtant=50,plot=TRUE)
+taxa
+```
+OK.  that generates a curve of taxon richness over time.  We need to figure out the units, but it's pretty cool (p=origination, q=extinction)
+
+OK.  And now we get to imperfect sampling:
+
+```{r}
+rangesCont <-sampleRanges(taxa,r=.1)
+taxicDivCont(rangesCont)
+```
+Now if the data are binned:
+
+```{r}
+rangesDisc <- binTimeData(rangesCont,int.length=10)
+#plot with taxicDivDisc
+taxicDivDisc(rangesDisc)
+```
+And that's the real key.
+
+Back to ctv, The odd thing is that they don't show on the RStudio package list.  However, using installed.packages() they all show up.

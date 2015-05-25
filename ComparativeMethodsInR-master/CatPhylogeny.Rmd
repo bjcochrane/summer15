@@ -1,0 +1,164 @@
+---
+title: <center>Exploring Treebase</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%%B %%d %%Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+```{r}
+library(phytools)
+library(geiger)
+```
+
+
+So the best thing to come out of the morning is the stuff on treebase.  We will try to get some of our own data and work from there
+```{r}
+cat.tr<- search_treebase("felis", by="taxon", branch_lengths=TRUE, max_trees=30)
+```
+```
+So it looks like there are 25 trees.  We'll tear one apart.
+```{r}
+tre.1 <-cat.tr[[1]]
+str(tre.1)
+
+```
+
+
+So we need to search for a manageable ntax
+```{r}
+sapply(cat.tr, function(x) x$ntax)
+```
+Number 6 has 13 taxa.  Let's see what it is
+```{r}
+plot(cat.tr[[23]])
+```
+Bacteria.  Ick.  We can do a search of names
+```{r}
+nms <-sapply(cat.tr, function(x) head(x$tip.label))
+nms
+```
+25 looks good.  Note that this changes with different runs.  Tree is from [here](http://www.sciencemag.org/content/311/5757/73)
+```{r}
+plot(cat.tr[[2]],cex=.5)
+```
+We like that!  So we will give it a name and make a chronogram of it.
+```{r}
+kittytree <-cat.tr[[2]]
+```
+And make it a chronogram
+```{r}
+kittychron <-chronos(kittytree)
+plot(kittychron,cex=.5)
+nodelabels()
+```
+So now - how to get some quantitative data.  We have some from [Morales et al, 2013](http://datadryad.org/resource/doi:10.5061/dryad.gg52d).  I wonder if we can merge them (a whole bunch of skull measurements)
+
+```{r}
+kittyhead <-read.csv("./DATA/Cats.csv",stringsAsFactors=FALSE)
+kittyhead[1:5,1:5]
+```
+So a few things to do:
+
+1.  Merge genus and species
+2.  Select characters
+3.  Perhaps stick with one gender
+4.  Then eliminate duplicates
+
+### By sex
+
+Not sure which is which, but we'll go with number 1
+```{r}
+kittysub <-kittyhead[which(kittyhead$Sex==1),]
+```
+See what we have
+```{r}
+kittysub[,1:2]
+```
+Still have a few duplicates, but the list is looking better.  
+
+### merge genus and species
+```{r}
+taxon <-kittysub[,1:2]
+taxon <-apply(taxon,1,function(x) paste(x[1],x[2],sep=" "))
+taxon
+```
+OK.  Now cbind that with the original and delete the two columns
+```{r}
+kittysub <-kittysub[,c(-1,-2)]
+kittysub <-cbind(taxon,kittysub)
+kittysub[1:4,1:4]
+```
+More cleanup, but while the expertise is here, we need to get standard names.
+
+```{r}
+taxon.clean <-gnr_resolve(names = gsub("_", " ",taxon), best_match_only=TRUE)
+```
+And actually there's no problem, so we can redo the genus and species without the underscore.
+
+Now back to the tree.  We do have underscores, so we need to do the above on that.
+```{r}
+tiplabels <-gnr_resolve(names=gsub("_"," ",kittytree$tip.label),best_match_only=TRUE)
+```
+So it looks like we can just take the dashes out and we're in business.  still have the duplicate problem, but with treedata() we should be able to get the dataset we need.
+
+```{r}
+tl <-gsub("_"," ",kittychron$tip.label)
+tl
+```
+```{r}
+kittychron$tip.label=tl
+plot(kittychron,cex=.5)
+```
+So at this point, kittychron is the tree and kittysub is the data.  We should save it for future reference.  we'll do a little renaming.
+
+Before doing so, we need to try to remove characters with na's
+```{r}
+ks <-kittysub[,!apply(kittysub,2, function (x) any(is.na(x)))]
+dim(ks)
+```
+OK.  We will switch this back but not save it yet
+```{r}
+kittysub <-ks
+```
+
+```{r}
+kitty.tree <-kittychron
+kitty.data <-kittysub
+kitties <-list(kitty.tree,kitty.data)
+save(kitties,file="./Data/kittiedata.Rda")
+```
+
+
+### weeding out duplicates
+
+
+```{r}
+kittysub[,1:2]
+```
+Not sure how to do it, but I wonder what would happen if I left the duplicates in.  We can try doing treebase for one character
+```{r}
+testchar <-kittysub$OCW
+testchar2 <-kittysub[,18]
+names(testchar)<-names(testchar2) <-kittysub[,1]
+testchar
+```
+OK.  Here we go.
+
+```{r}
+class(kittychron) <-"phylo"
+kittydat <-treedata(kittychron,testchar,sort=TRUE)
+```
+Ok.  Even though there are warnings, we seem to have data
+```{r}
+plot(kittydat$phy)
+```
+That's ok.  Now the continuous stuff
+```{r}
+(contMap(kittydat$phy, kittydat$data[,1]))
+```
+Yes!!!  Now we can carry this forward!!  What we need to do is to modify the above, so that testchar consists of multiple traits, some correlated and some not.
+
+

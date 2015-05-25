@@ -1,0 +1,104 @@
+---
+title: "Exploring Shiny"
+author: "Bruce Cochrane"
+date: "May 5, 2015"
+output: html_document
+---
+Once again, we need to try to master this.  We're going to work through the [RStudio Tutorial](http://shiny/rstudio.com/tutorial).
+
+## Lesson 1
+
+I think we have it installed - we shall see 
+
+```{r}
+library(shiny)
+```
+
+###  The two components
+
+So the idea is to make these two and put them together in their own directory as .R files.  One is called ui.R; the other is server.R  We'll start by doing so with the sample code in the tutorial (reproduced below for future reference)
+
+#### The user interface
+
+library(shiny)
+
+ # Define UI for application that draws a histogram
+shinyUI(fluidPage(
+
+  # Application title
+  titlePanel("Hello Shiny!"),
+
+  # Sidebar with a slider input for the number of bins
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("bins",
+                  "Number of bins:",
+                  min = 1,
+                  max = 50,
+                  value = 30)
+    ),
+
+    # Show a plot of the generated distribution
+    mainPanel(
+      plotOutput("distPlot")
+    )
+  )
+))
+
+#### The Server Instructions
+
+library(shiny)
+
+ # Define server logic required to draw a histogram
+shinyServer(function(input, output) {
+
+  # Expression that generates a histogram. The expression is
+  # wrapped in a call to renderPlot to indicate that:
+  #
+  #  1) It is "reactive" and therefore should re-execute automatically
+  #     when inputs change
+  #  2) Its output type is a plot
+
+  output$distPlot <- renderPlot({
+    x    <- faithful[, 2]  # Old Faithful Geyser data
+    bins <- seq(min(x), max(x), length.out = input$bins + 1)
+
+    # draw the histogram with the specified number of bins
+    hist(x, breaks = bins, col = 'darkgray', border = 'white')
+  })
+
+
+### Running the app
+```{r}
+runApp("./Shiny/App1")
+```
+OK so far.  And there's one other thing
+```{r}
+runApp("./Shiny/App1",display.mode='showcase')
+```
+Not sure what's up with that.
+
+so there are a bunch of examples that run in showcase.  One follows:
+
+```{r}
+runExample('08_html')
+```
+
+## Lesson 2 - building a UI
+
+So we will build the basics per the tutorial and put it in app2.
+
+First, make the two wrappers
+
+shinyUI(fluidPage(
+  ))
+
+Then create title and sidebar.  Note that default position for sidebar is left; can specify position=right
+shinyServer(function(input,output){
+  
+})
+
+
+OK.  So there are a bunch of tags we need to learn, but the basics of the ui are pretty logical.  We'll quit with this one and see if we can open a shiny-specific project that might be easier.
+
+

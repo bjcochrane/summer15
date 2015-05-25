@@ -1,0 +1,73 @@
+---
+title: <center>Pedigree Drawing</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+ the package kinship2
+```{r}
+#install.packages("kinship2")
+```
+```{r}
+library(kinship2)
+```
+First, use data supplied to get format
+```{r}
+data(minnbreast)
+head(minnbreast)
+```
+
+So I wonder if we could create a dataframe via excel that just has the first four columns (actually five, including sex)
+
+```{r}
+dat.raw <-read.csv("./DATA/SimplePedigree.csv",stringsAsFactors=FALSE)
+head(dat.raw)
+```
+Now create a pedigree object
+```{r}
+dat.ped <-with(dat.raw,pedigree(id,fatherid,motherid,sex))
+plot(dat.ped)
+```
+That is super cool!!  We can use it in genetics next fall for all types of stuff.  And for just drawing a structure, all we need is three columns - motherid, fatherid and sex.  We're going to make a file for that
+```{r}
+dat.raw <-dat.raw[,c(1,3,4,6)]
+dat.raw
+```
+```{r}
+save(dat.raw,file="../Data2015/Pedigree")
+```
+### May 8
+
+OK.  now we want to add in affected status.  We'll just do it randomly for now
+```{r}
+aff <-rbinom(12,1,.5)
+aff
+```
+And we'll cbind that to the data
+```{r}
+dat.new <-cbind(dat.raw,aff)
+head(dat.new)
+```
+And now we should be able to generate the file
+```{r}
+ped.2 <-with(dat.new, pedigree(id,fatherid,motherid,sex,aff))
+plot(ped.2)
+```
+Well what do you know?  That actually works as an autosomal dominant!!  Of course, we didn't set.seed, so we'll never get it again . . . 
+
+
+Try it with names
+```{r}
+dat.me <-read.csv("./Data/MyFamily.csv")
+dat.me
+```
+```{r}
+ped.me <-with(dat.me,pedigree(id,fatherid,motherid,sex,missid="0"))
+plot(ped.me)
+```
+

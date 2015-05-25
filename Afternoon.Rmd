@@ -1,0 +1,46 @@
+---
+title: <center>Historical Biogeography</center>
+author: <center>Jeet Sukaumaran</center>
+date: <center>`r format(Sys.Date(),format="%%B %%d %%Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+May move back and forth with Textmate
+```{r}
+library(optimx)
+library(BioGeoBEARS)
+```
+Continuous vs discrete approaches - latter is appropriate when you can focus on elements of interest. Biogeo - species level and higher, where discrete applies.
+
+DEC - Dispersal-Extinction-Cladogenesis model - range evolution - adding and removing areas (local extinction - a lineage leaves an area).  Leads to inference of area of origin for lineage.
+
+#### Input
+
+Phylogeny and Geography
+
+* ultrameric tree
+* geographical distribution of tips
+
+Phylogeny is accepted as true.
+
+#### Output
+
+* Likelihood of model
+* Estimation of global extinction dispersal rates
+* Likelihood of ranges.
+
+Ranges- consist of a set of occupied areas and constitute character states.  Evolve either anagenically or cladogenically.
+
+Dispersal - product of global rate d and connectivity of two areas involved (i ->j) [relative - 0 to 1]
+
+Uncomment if needed.
+```{r}
+# setwd("./ssb2015-workshop/2015-SSB-AnnArbor-Biogeography/biogeobears")
+```
+Note that establishing ranges for d and e are critical 
+
+dec.j adds jump parameter to estimate - mimics island colonization.

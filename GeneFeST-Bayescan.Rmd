@@ -1,0 +1,26 @@
+---
+title: <center>SSB Staellite Meeting</center>
+author: <center></center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+---
+So this is very exploratory in nature - stumbled across this package, which will in essence take a Bayesian approach to identifying Fst outliers in genomic data.  We're just going to walk through the demo (if we can)
+```{r}
+#install.packages("GeneFeST")
+```
+```{r}
+library(GeneFeST)
+library(PopGenome)
+```
+OK.  So we should be able to do this, without grouping, with the test file distributed with Bayescan:
+
+```{r}
+res <-GeneFeST(input="./Bayescan/snp.txt",GROUP=FALSE)
+```
+

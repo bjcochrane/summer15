@@ -1,0 +1,19 @@
+---
+title: <center>Biogeography Workshop</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Installation
+
+Run once and then comment:
+
+```{r}
+install.packages("optimx")
+install.packages("BioGeoBEARS")
+```
+

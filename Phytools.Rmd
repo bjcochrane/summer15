@@ -1,0 +1,238 @@
+---
+title: <center>Phtyools Explations</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+
+[Original paper by Liam Revell](http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2011.00169.x/full)
+---
+
+One of the tools to be explored at SSB.
+```{r}
+library(phytools)
+```
+So first let's generate a random tree
+```{r}
+set.seed(123)
+tr <-rtree(20)
+plot(tr)
+```
+OK.  Now we're going to try to add a continuous character.
+```{r}
+char <-runif(20,1,20)
+names(char) <-tr$tip.label
+char
+```
+```{r}
+plot(contMap(tr,char))
+```
+Nice!!  This has a lot of possibilities.  So we could do something like the following:
+
+1.  Construct a molecular phylogeny (maybe rDNA to keep it basic)
+2.  Add some phenotypic characters
+3.  Replot as above.
+
+An alternative to random traits is to generate traits with fastBM, which will use the tree to generate them, with Brownian motion assumed in generating the variance covariance matrix.  We will do two traits.
+```{r}
+char.BM <- abs(fastBM(tr,nsim=2))
+colnames(char.BM) <-c("trait1","trait2")
+head(char.BM)
+```
+Note that we've made all of the traits positive (rather than mean=0)
+
+Now do the plot
+```{r}
+plot(contMap(tr,char.BM[,1]))
+```
+And we can add bars to the tips
+```{r}
+plotTree.wBars(tr,char.BM[,1],scale=0.2)
+```
+Combining the two
+```{r}
+sim.t1<-contMap(tr,char.BM[,2],plot=FALSE)
+plotTree.wBars(sim.t1$tree,char.BM[,2],colors=sim.t1$cols,method="plotSimmap")
+```
+What would probably be better would be to use the character values as tip labels in the oringal plot.
+
+```{r}
+data(anoletree)
+```
+```{r}
+fancyTree(tr, type = "contmap", x = char.BM[,2])
+```
+Gives us exactly what we saw previously
+
+
+### From  Tutorial
+
+See [here](http://www.phytools.org/eqg/Exercise_3.2/) for original.
+
+#### Generate a tree from pbtree and go from there.
+
+```{r}
+set.seed(234)
+tr2 <-pbtree(b=1,d=.2,n=20)
+plotTree(tr2)
+```
+Now see if we can label nodes
+```{r}
+nodelabels()
+```
+Nice.  Now we can extract a subtree, for example from node 32
+```{r}
+tr32 <-extract.clade(tr2,32)
+plot(tr32)
+nodelabels()
+```
+note that the above can be done with
+```{r}
+plotTree(tr2,node.numbers=T)
+```
+Looks much nicer the other way.
+
+We can also rotate nodes
+```{r}
+tr2.rt <-rotate(tr2,38)
+plot(tr2.rt)
+nodelabels()
+```
+The root command can be used to pick a node to root at - pretty straigtforward
+
+#### Simulating brownian motion
+
+[Exercise 4.1](http://www.phytools.org/eqg/Exercise_4.1/)
+
+So we can first do a 100 generation simulation.  Think in terms of mutation at random, so at each time point we are drawing from a normal distribution with mean 0 and instantaneous variance of &sigma;^2^:  Shows off a new function we could use - cumsum
+
+```{r}
+t <-1:100
+sig2 <-0.01
+x <-rnorm(length(t-1),0,sqrt(sig2))
+y <-c(0,cumsum(x))
+plot(t,x,type="l",ylim=c(-2,2))
+```
+There's more stuff on that, but on to trees.  The following.  We set both origination and extinction rates and keep trying to get n taxa.
+```{r}
+t <- 100
+n <-30 # number of taxa
+b <-(log(n)-log(2))/t
+tr3 <-pbtree(b=b,n=n,t=t,type="discrete")
+plotTree(tr3)
+```
+And it goes on and on with stuff for discrete time sampling.  But what fastBM does is to simulate it over continuous time:
+
+```{r}
+x2 <-fastBM(tr3,sig2=sig2)
+phenogram(tr3,x2,spread.labels=T,spread.cost=c(1,0))
+```
+```{r}
+plot(contMap(tr3,x2))
+nodelabels()
+```
+### Independent contrasts
+
+Per Felsenstein, 1985; method to account for phylogenies in looking at correlated traits.  In essence, consider internode evolution on both branches from a single node comprise a set of independent draws from a normally distributed variable (µ=0, &sigma;^2^=1).  Calculate for two traits and then look at regression.  pic function in ape has the following sample code:
+
+```{r}
+tr.new <-"((((Homo:0.21,Pongo:0.21):0.28,Macaca:0.49):0.13,Ateles:0.62):0.38,Galago:1.00);"
+```
+Try to read this
+```{r}
+tr <-read.tree(text=tr.new)
+plot(tr)
+```
+So far so good.  Now enter two sets of character data and give them appropriate names (no sure what they are)
+```{r}
+X <- c(4.09434, 3.61092, 2.37024, 2.02815, -1.46968)
+Y <- c(4.74493, 3.33220, 3.36730, 2.89037, 2.30259)
+names(X) <- names(Y) <- c("Homo", "Pongo", "Macaca", "Ateles", "Galago")
+```
+and do the test
+```{r}
+pic.X <-pic(X,tr)
+pic.Y <-pic(Y,tr)
+(pic.X);pic.Y
+```
+and test for correlation
+```{r}
+cor.test(pic.X,pic.Y)
+```
+Do a regression, through the intercept
+```{r}
+lm1 <-lm(pic.X~pic.Y-1)
+plot(pic.Y,pic.X)
+abline(lm1)
+```
+So not much there.  need some real data.  There's actually some [here](http://www.r-phylo.org/wiki/HowTo/Phylogenetic_Independent_Contrasts) on Geospiza.
+
+```{r}
+geotree <- read.nexus("http://www.r-phylo.org/mediawiki/images/0/02/Geospiza.nex")
+geodata <-read.table("http://www.r-phylo.org/mediawiki/images/5/5c/Geospiza.txt")
+```
+Cool. At this point we could go on with independent contrasts, however we could also look at the character state evolution.  Let's eyeball the data
+```{r}
+head(geodata)
+```
+So we have to get olivaceae out of the tree:
+
+```{r}
+geotree <- drop.tip(geotree, "olivacea")
+plot(geotree)
+```
+Now we can do trait mapping, but we need to associate trait values with species.  Probably the easiest way is to create a vector of one trait and then name it.  Start with beak depth.
+
+```{r}
+bkd <-geodata$beakD
+names(bkd) <-row.names(geodata)
+bkd
+```
+OK.  Now do the trait mapping per above.
+```{r}
+cm <-contMap(geotree,bkd)
+plot(cm)
+nodelabels()
+```
+Another idea
+```{r}
+phenogram(geotree,bkd)
+```
+And then, per the tutorial, an obvious place to look for correlated evolution is wing length and tarsus length:
+
+```{r}
+wg <-geodata$wingL
+tr <-geodata$tarsusL
+names(wg) <-names (tr) <-row.names(geodata)
+wg; tr
+```
+Now do the indepnendent contrasts:
+```{r}
+pic.wg <-pic(wg,geotree)
+pic.tr <-pic(tr,geotree)
+```
+
+Now we can plot and do regression
+```{r}
+plot(pic.tr,pic.wg)
+lm2 <-lm(pic.wg~pic.tr -1)
+abline(lm2,col="red")
+summary(lm2)
+```
+So this is a good example to work up.  And there's stuff on node labelling in the text, which is mighty cool.
+
+```{r}
+plot(geotree)
+nodelabels(round(pic.tr,3))
+```
+That shows the contrasts for tarsus length; we could also do it for both
+
+```{r}
+plot (geotree)
+  nodelabels(round(pic.wg, 3), adj = c(0, -0.5), frame="n")
+  nodelabels(round(pic.tr, 3), adj = c(0, 1), frame="n")
+```
+But here's where we need to explore the ancestral state stuff in phytools.

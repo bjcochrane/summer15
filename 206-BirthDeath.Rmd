@@ -1,0 +1,84 @@
+---
+title: <center>The Birth and Death of Species</center>
+author: <center>Bruce J Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: ../Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+
+```{r,echo=FALSE,results='hide'}
+library(paleotree)
+```
+## Background
+
+At this point, we shift gears, thinking about evolution at the levels above that of the species.  So, for example, if we think of a genus as a population of species, then we can think of the origination and extinction of species as a birth-death process.  we can describe that with two parameters:
+
+&alpha; - the rate of origination of new species  
+&omega; - the rate of species extinction.
+
+## A few scenarios
+
+What we need to do is to explore theoretically what our expectations would be given various combinations of these parameters.
+
+### 1. &alpha; = &omega;
+
+Suppose we start with the case where &alpha; = &omega; = 0.1 (or 10% per time unit in our history) and simulate the change in species number over time.
+
+```{r,echo=FALSE}
+set.seed(123)
+sim1 <-simFossilTaxa(.1,.1,mintaxa=20,plot=TRUE)
+```
+<!--(Note to self - we need to do this in Shiny!!)-->
+
+So here we see that, following an initial increase in species, we attain an equilibrium of about 5-8 species.  
+
+### 2. &alpha; > &omega;
+
+Now, consider the case in which the rate of origination exceeds the rate of extinction, for example during an adaptive ratiation.  We will set &alpha;  to 0.1 and &omega; to 0.05:
+
+```{r,echo=FALSE}
+set.seed(458)
+sim2 <- simFossilTaxa(.1,.05,mintaxa=20,plot=TRUE)
+```
+After an inital lag period, we now see a rapid increase in taxa.  In fact, what has occurred is an exponential increase in species number.
+
+### 3.  &alpha; < &omega;
+
+So what happens if extinction rate exceeds the origination rate? In reality of course, the survival of such a clade would be an unlikely event.  However, if it does occur, say with &alpha; equal to .04 and &omega; equal to .1, we might see something like the following:
+```{r}
+set.seed(123)
+sim3 <-simFossilTaxa(.04,.1,mintaxa=20,plot=TRUE)
+```
+Notice that at no point are there more than 8 taxa, and subsequent to that number occurring, the numbers quickly decline.
+
+## Modeling the Fossil Record
+
+Up to this point, We have implicitly assumed that we have a record of every species, living and extinct, in the clade.  Of course, in real life that never happens.  So how do the limitations of the fossil record impact what we might actually observe?  To look at this, we will delve further into the adaptive radiation case (&alpha; > &omega;) and consider two factors:
+
+### 1.  Incomplete sampling of species
+
+First, supposing that, rather than identifying every species in the fossil record, we only identify 10 percent of them.  What would that look like?
+
+```{r,echo=FALSE}
+sim2.2 <-sampleRanges(sim2,r=.1)
+taxicDivCont(sim2.2)
+
+```
+The numbers still increase, but in a more stepwise fashion.  Furthermore, notice that the number of species at every time point is reduced.
+
+### 2.  Incomplete sampling of time points
+
+Just as it's unlikely that we'll identify every species, it is also true that we will only have a record for a limited number of time points (those at which conditions were favorable for fossil preservation).  In the example that follows, we only have been able to sample every 10 time units in the record:
+
+```{r,echo=FALSE}
+sim2.3 <-binTimeData(sim2.2,int.length=10)
+taxicDivDisc(sim2.3)
+```
+Now (and it should be no surprise), the stepwise nature of the record becomes more pronounced, meaning that it appears that species appear and disappear abruptly.  The question then becomes whether these essential factors of any paleontological record are sufficent to explain observed macroevolutionary patterns.
+
+
+

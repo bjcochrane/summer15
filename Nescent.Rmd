@@ -1,0 +1,58 @@
+---
+title: <center>From the Nescent Hackathon</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+```{r}
+library(devtools)
+install_github("georgeshirreff/multiNe")
+```
+```{r}
+install.packages("INLA", repos="http://www.math.ntnu.no/inla/R/stable")
+```
+
+So that gets it done.
+
+```{r}
+library(multiNe)
+```
+```{r}
+data(nancycats)
+HENe(nancycats)
+```
+OK, so that computes Ne based on heterozygote excess.  It uses genind object (adegenet)
+
+```{r}
+summary(nancycats)
+```
+I think there's a vignette in pegas that may help with the genind construction - 
+
+Another cool thing - generate simulated microsatellite data from ms run:
+
+```{r}
+ms.out <- ms(nsam=30,nreps=5,opts=("-s 10"))
+ms.ms <-ms2ms(ms.out)
+```
+```{r}
+summary(ms.ms)
+```
+Now, does it work?
+```{r}
+HENe(ms.ms)
+```
+
+A couple of intriguing possibilities
+
+1.  Adegenet can read genepop files, so we can generate them in Genalex
+2. Read hapmap data with chopsticks, getting snpmatrix; can then (we hope) convert to genind and run.
+
+```{r}
+ms2ms
+```
+

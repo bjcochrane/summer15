@@ -1,0 +1,37 @@
+---
+title: "rvest"
+author: "Bruce Cochrane"
+date: "May 23, 2015"
+output: html_document
+---
+From R Bloggers
+```{r}
+install.packages("rvest")
+library(rvest)
+```
+
+Just use the sample code for now.
+```{r}
+URL <- "http://ultrasignup.com/entrants_event.aspx?did=31114"
+rvest_doc <-html(URL)
+```
+
+```{r}
+str(rvest_doc)
+```
+Then you need to find a node - does so via css.  in the example, this is done with "table.ultra_grid", but I suspect that is site-specific.  I wonder what would happen if we just used "table"
+```{r}
+test2 <-html_nodes(rvest_doc,"table")
+str(test2)
+```
+And moving on.  
+```{r}
+test.table <-html_table(test)
+head(test.table)
+```
+```{r}
+str(test.table)
+```
+Pretty easy.  Note that html_nodes returns a list - I wonder if that would work for multiple tables on a page.  We shall see.  
+
+But anyway, for a static page, we can use the selector gadget in Chrome to find an appropriate css term and then go from there.  Of course, this will only work with static pages - we really need to work on biomaRt tools.

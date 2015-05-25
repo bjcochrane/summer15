@@ -1,0 +1,54 @@
+---
+title: <center>Matrices and eigens</center>
+author: <center>Bruce Cochrane</center>
+date: <center></center>
+output: 
+    html_document:
+       css: ../Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+From Evolutionary Quantitative Genetics workshop.
+
+```{r}
+a <-matrix(data=c(2,3),nrow=2,ncol=1)
+a
+```
+```{r}
+e <-matrix(c(3,4),2,1)
+e
+```
+```{r}
+z <-a+e
+z
+```
+```{r}
+G <-matrix(as.integer(runif(4,1,10)),nrow=2,ncol=2)
+G
+```
+
+Now the eigens  The basic equation is that
+
+*G* **v** = &lambda; **v**, where   *G* is a matrix, **v** is the eigenvector and &lambda; is the corresponding eigenvalue.
+```{r}
+eg <-eigen(G)
+str(eg)
+```
+Now let's test.  First, extract the first eigenvector:
+
+```{r}
+eg1 <-eg[[2]][,1]
+eg1
+```
+now multiply eg1 by ev1
+```{r}
+ev1 <-eg[[1]][1]
+out1 <-eg1*ev1
+out1
+```
+Now compare that to the original matrix multiplied by ev1
+```{r}
+out2 <-G%*%eg1
+out2
+```
+And it worked!  Now to figure out the practical significance!!!

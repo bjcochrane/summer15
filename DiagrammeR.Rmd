@@ -1,0 +1,45 @@
+---
+title: "DiagrammeR"
+author: "Bruce Cochrane"
+date: "May 1, 2015"
+output: html_document
+---
+```{r}
+#install.packages("DiagrammeR")
+library(DiagrammeR)
+```
+### The 206 Concept map
+
+Code below generates a slight revision of the original concept map.
+```{r}
+DiagrammeR("graph TB;
+          b(Broad Evolutionary Question)-->Question;
+           Question(Specific Question of Paper)-->BG1(Background 1);
+           Question-->BG2(Background 2);
+           Question-->BG3(Background 3);
+           BG1-->Design/Methods(Experimental Design and Methods);
+           BG2-->Design/Methods;
+           BG3-->Design/Methods;
+           Design/Methods-->Results1;
+           Design/Methods-->Results2;
+           Design/Methods-->Results3;
+           Results1-->Conclusions;
+           Results2-->Conclusions;
+           Results3-->Conclusions;
+           Conclusions-->OpenQuestions(Open Questions);
+           OpenQuestions-->A(Full Citation);
+          classDef default fill:#FC1,stroke:#333,stroke-width:2px;")
+```
+OK.  So the basics are clear.  We need to use the parenthesis notation to get it the best we want.  And another little trick - shape of box can be determined - () rounded, [] square, and {} diamond.  What would be nice would be if the default color could be set.  That is now done; information is available via [mermaid.js help](http://knsv.github.io/mermaid/) pages.  don't need to worry about the graphviz stuff for now.
+
+### Make a pedigree
+
+```{r}
+library(DiagrammeR)
+DiagrammeR('graph TB;
+           A[A]-->C((C));
+            B((B))-->C;')
+  
+
+```
+

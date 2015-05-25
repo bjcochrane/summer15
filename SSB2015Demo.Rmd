@@ -1,0 +1,112 @@
+---
+title: <center>A Few Demonstrations</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Introduction
+
+These are just a few of the capabilities of TeachingPopGen that I particularly like to showcase.  
+
+### A basic Hardy Weinberg Calculation
+
+Input a set of genotype numbers (AA, Aa, and aa) and feed it to the function hw()
+```{r}
+genos <-c(40,72,36)
+hw(genos)
+```
+### Ewens-Watterson
+
+Test an observed set of numbers of alleles at a multi-allelic locus in a population for departure from neutral expectations under the infinite alleles model:
+
+```{r}
+obs <-c(15,12,7,2,2,1,1)
+```
+First, alculate expected homozgygosity
+```{r}
+fexp <-fhat(obs)
+```
+Then, run the analysis
+```{r}
+n <-sum(obs)
+k <-length(obs)
+Ewens(n,k,fexp)
+```
+
+### Coalescent simulation
+
+Using the ms() function in the package phyclust (a depend of TPG), do 1000 simulations of 30 sequences, with &theta; set to 10:
+
+```{r}
+dat.ms <-ms(nsam=30,nreps=1000,opts=("-t 10"))
+```
+Compute summary statistics that result:
+```{r}
+dat.sum <-ms.sumstats(dat.ms)
+head(dat.sum)
+```
+Plot distribution of Tajima statistic, showing tails
+```{r}
+colhist(dat.sum$Tajima.D, labs=c("D","Frequency","Tajima's D"))
+```
+
+
+### Observed and expected DNA Data workflow
+
+Compare the value of Tajima's D determined from a set of DNA sequences to neutral expectations:
+
+#### Load sample data
+
+```{r}
+data(spaghetti) #data from the spaghetti-squash locus of D. mauritiana
+spaghetti
+```
+
+Use Ape and PEGAS functions to get basic parameters
+
+```{r}
+taj.d <-tajima.test(spaghetti)
+n.sites <-length(seg.sites(spaghetti))
+taj.d$D; n.sites
+```
+
+#### Do ms simulations with observed number of sites
+
+```{r}
+dat.sim <-ms(nsam=42,nreps=1000,opts=c("-s 42 -r 0 702"))
+dat.sim.sum <-ms.sumstats(dat.sim)
+```
+
+#### Compare Tajima distribution to observed
+
+```{r}
+colhist(dat.sim.sum$Tajima.D)
+abline(v=taj.d$D,col="blue")
+```
+
+### Scrape data from ALFRED
+
+Using the [ALFRED Database](http://alfred.med.yale.edu/), us a  SNP selected from HERC2 gene, siteid="SI007119S"
+```{r}
+id <-"SI007119S"
+dat.alf <-read.alfred(id)
+```
+Aggregate data by continent
+```{r}
+dat.cont <- aggregate.alfred(dat.alf)
+head(dat.cont)
+freqs <-with(dat.cont,Nq/N2)
+fst.cont(dat.cont)
+barplot(freqs,names.arg=dat.cont$Continent,las=2,main="Allele Frequency by Continent")
+```
+Aggregate by population and do nested F statistics:
+
+```{r}
+dat.pop <-aggByPop.alfred(dat.alf)
+fst.nest(dat.pop)
+```
+
