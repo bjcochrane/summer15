@@ -1,0 +1,222 @@
+---
+title: <center>Building SNP Data Set</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+
+So the goal here is to build a dataset of human SNP data with the following characteristics:
+
+1.  SNPs randomly selected from the genome (say 1000 or so)
+2.  All of those with NA's removed (preferably SNP-wise as opposed to genome-wise).
+3.  Converted to genind object.
+
+The strategy will be to 
+
+1.  Query biomart for list of all snps
+2.  Sample ca 10,000 randomly
+3.  Clean out the NA's 
+4.  Do the data munging
+
+Hopefully there won't be any that are fixed across all populations.  We'll deal with that when we come to it.
+
+```{r}
+library (biomaRt)
+```
+Set up the mart and construct a query of snp names
+```{r}
+hap.mart <-useMart("HapMap_rel27",dataset="hm27_variation")
+listAttributes(mart.all)
+```
+```{r}
+listFilters(mart.all)
+```
+
+Now see if we can do an unfiltered querie
+```{r}
+snp.list <-getBM(attributes="marker1",mart=hap.mart)
+```
+Note that this takes a LONG time.  We need to save the list once we have it.
+
+### Subsetting
+```{r}
+snp.list <-as.vector(snp.list)
+snp.samp <-sample(snp.list$marker1,20000,replace=FALSE)
+```
+And querying
+```{r}
+dat <-getBM(attributes=c("sample_id","pop_id","pop_code_genotype","marker1","genotype"),filter="marker_name",values=snp.samp,mart=hap.mart)
+```
+Interesting - it came back with only 6400.  We may want to try this again with a larger sample.
+```{r}
+save(snp.list,file ="./DATA/allsnps.txt")
+```
+Explore the subset list (now has the 20,000 we want)
+```{r}
+str(dat)
+```
+```{r}
+pops <-unique(dat$pop_code_genotype)
+pops
+```
+Let's see if we can split this
+```{r}
+dat.spl <-split(dat,dat$pop_code_genotype)
+```
+Good.  that made it into a list with 11 elements.  Should be the eleven populations.
+```{r}
+names(dat.spl)
+```
+So what we'll do is to work on one, and then write some apply functions to do to all of them
+```{r}
+df1 <-dat.spl[[1]]
+names(df1)
+```
+```{r}
+df1[1,5]
+```
+So we need to focus on columns 1 and 5.  Note that all of the names are the same (as expected)
+
+
+```{r}
+unique(df1[,1])
+```
+
+Thus, we can get our individual names with
+
+```{r}
+indiv <-unlist(strsplit(df1[1,1]," "))
+head(indiv)
+length(indiv)
+```
+Now we can do something similar for the snps.  That is simply the marker id column, so this is just creating a convenience variable
+```{r}
+snp.ids <-df1$marker1
+```
+Now for the genotypes.  The job is to take the genotypes and strsplit them appropriately into a data frame.  We'll go one step at a time
+
+```{r}
+genos <-df1$genotype #convenience object
+genos[1]
+```
+So what we have here is one element for snip, and one entry in that element per individual.  So we need to do an sapply (or lapply)
+```{r}
+genos.spl <-sapply(genos,strsplit," ")
+```
+Sehr gute.  now we need to make a matrix with the do call mess.
+```{r}
+genos.mat <-do.call(cbind.data.frame,genos.spl)
+```
+And all should check out, but just to be sure
+
+```{r}
+genos.mat[1,1]
+```
+So all that is left is to remove the NN's and put it together.
+```{r}
+genos.mat[genos.mat=="NN"] <-NA
+```
+Now actually that should be convertable to a genind object by itself:
+```{r}
+genos.gen <-df2genind(genos.mat)
+summary(genos.gen)
+```
+Note in passing - the HENe thing works, although it gives a crazy answer:
+
+```{r}
+HENe(genos.gen)
+```
+Before functionalizing, we can clean up the data:
+
+```{r}
+rownames(genos.mat) <-indiv
+colnames(genos.mat) <-snp.ids
+str(genos.mat)
+genos.mat <-cbind(rep(df1$pop_code_genotype[1],nrow(genos.mat)),genos.mat)
+colnames(genos.mat)[1] <-"pop"
+genos.mat[1:4,1:4]
+```
+Now try the df2genind
+```{r}
+df1.gen <-df2genind(genos.mat[,-1],pop=genos.mat[,1])
+df1.gen
+```
+```{r}
+summary(df1.gen)
+```
+OK.  It all works.
+
+### Writing a function
+
+So the idea is to do all of the above as a function, with the input a dataset and the output a genind-ready dataset.  We will then lapply it to all of the hapmap populations and go from there to make a single genind object.
+```{r}
+bmhap2df <-function(df1){
+  indiv <-unlist(strsplit(df1[1,1]," ")) # extract names of individuals
+  snp.ids <-df1$marker1 # extract snp names
+  genos <-df1$genotype # create a variable of the individual genotypes
+  genos.spl <-sapply(genos,strsplit," ") # separate multilocus genotypes into single loci
+  genos.df <-do.call(cbind.data.frame,genos.spl) #convert this to a data frame
+  genos.df[genos.df=="NN"] <-NA #convert missing data to NA
+  rownames(genos.df) <-indiv # name rows
+colnames(genos.df) <-snp.ids # and columns
+return(genos.df)
+}
+```
+Test the function
+```{r}
+test.df <-bmhap2df(dat.spl[[2]])
+```
+```{r}
+
+str(test.df)
+```
+OK.  A whole lot more snps than we had before, which is odd
+```{r}
+unique(dat.spl[[2]]$pop_code_genotype)
+```
+But we can test it.
+```{r}
+test.gen <-df2genind(test.df)
+```
+And the kinds of mess we like to do:
+
+```{r}
+summary(test.gen)
+HENe(test.gen)
+```
+And this is interesting - there are a lot of monomorphic loci, which we need to address.  But, as a final test, we can see if an lapply works
+```{r}
+df.all <-lapply(dat.spl,bmhap2df)
+```
+```{r}
+names(df.all)
+```
+Pretty cool stuff.  For the heck of it, we can see if we can get a genind object.
+
+```{r}
+gen.all <-lapply(df.all,df2genind)
+```
+```{r}
+names(gen.all)
+lapply(gen.all,HENe)
+```
+So a couple of things to do:  
+
+1.  Save the function so it can be sourced.
+2.  save the subsetted data (dat.spl) - needs to be renamed
+
+Probably that's all for now.  The big problems remaining
+
+1.  Get a set of common SNPs
+2.  create a combined dataset
+3.  If we do so, there shouldn't be any monomorphics, but check anyway.
+```{r}
+snpdat.samp <-dat.spl
+save(snpdat.samp,file="./DATA/sampsnps.txt")
+```
+
