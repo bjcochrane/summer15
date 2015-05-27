@@ -1,0 +1,40 @@
+---
+title: <center>HAPMAP Data 2 - screening for data with ancestral alleles</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+###  Goals
+
+We want to end up with a multipopulation database, consisting of snps for which ancestral and derived states are known.  So to do that, we have to start as follows:
+
+1.  Get a list of snps in snpmart
+2.  Eliminate those without ancestral data.
+3.  Do an intersect with the snps in Hapmap
+4.  Sample these and create a master data set
+5.  Go from there.
+
+```{r}
+library(biomaRt)
+```
+```{r}
+snp <-useMart("snp")
+```
+```{r}
+listDatasets(snp)
+```
+```{r}
+snp.dat <-useMart("snp",dataset="hsapiens_snp")
+```
+```{r}
+listAttributes(snp.dat)
+```
+```{r}
+listFilters(snp.dat)
+```
+So to choke the horse, we will now do a search, saving and committing this file before doing so,
