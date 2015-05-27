@@ -94,8 +94,16 @@ summary(yri.gen)
 ```
 So this works, except that the data are weird - it looks for all the world like every locus has all four bases segregating, which makes no sense at all. 
 
-### Trying with all pops
 
+Now we could do the effective population size number
+### Trying with all pops
+```{r}
+library(multiNe)
+```
+```{r}
+HENe(yri.gen)
+```
+Looks like we need to weed out either the monomorphics or the NA's (preferably both.)
 So we will now use the data set hm27_variation.
 
 ```{r}
