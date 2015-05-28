@@ -15,3 +15,5 @@ bmhap2df <-function(df1){
   rownames(genos.df) <-indiv # name rows
   colnames(genos.df) <-snp.ids # and columns
   return(genos.df)
+  
+}

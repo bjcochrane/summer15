@@ -29,12 +29,98 @@ snp <-useMart("snp")
 listDatasets(snp)
 ```
 ```{r}
-snp.dat <-useMart("snp",dataset="hsapiens_snp")
+snp.mart <-useMart("snp",dataset="hsapiens_snp")
 ```
 ```{r}
 listAttributes(snp.dat)
 ```
 ```{r}
-listFilters(snp.dat)
+listFilters(snp.mart)
 ```
-So to choke the horse, we will now do a search, saving and committing this file before doing so,
+So to choke the horse, we will now do a search, saving and committing this file before doing so.
+```{r}
+snp.bm <-getBM(attributes=c("refsnp_id"),mart=snp.mart)
+```
+OK.  This isn't working.   We're trying from biomart.og, but in the meantime I wonder what the yield would be like if we use a subset of the hapmap snps as a filter.
+
+```{r}
+load("./DATA/allsnps.txt")
+```
+```{r}
+snp.samp <-sample(snp.list$marker1,1000)
+```
+```{r}
+snp.samp.bm <-getBM(attributes=c("refsnp_id","chr_name","chrom_start","allele","allele_1"),filters=c("snp_filter"),values=snp.samp,mart=snp.mart)
+```
+OK.  That brought back 1025 - must be some duplicates, which may be a problem down the road.
+```{r}
+head(snp.samp.bm)
+```
+So one thing we probably want to do is to restrict our attention to autosomes.  But first, we need to trim out snps with no ancestral data
+```{r}
+test <-snp.samp.bm # make a working copy
+test[test==""] <-NA
+test[1:100,]
+```
+OK.  Now to weed them out
+```{r}
+test <-test[which(is.na(test$allele_1)==FALSE),]
+```
+OK.  That did it, and it only dropped out 20.  
+
+Now, there is the question of chromosome number
+```{r}
+unique(test$chr_name)
+```
+First, let's make an X database
+```{r}
+test.x <-test[which(test$chr_name=="X"),]
+```
+OK.  Only 27
+```{r}
+aut <-as.character(c(1:23))
+test.a <-lapply(aut, function (x) test[which(test$chr_name==x),])
+head(test.a)
+```
+Maybe time for a do.call
+```{r}
+test.a2 <-do.call(rbind.data.frame,test.a)
+head(test.a2)
+```
+
+Start over.  Try doing the whole thing for chromosome 1 and see what we get.
+```{r}
+test.1 <-test[which(test$chr_name=="2"),]
+```
+That works.  So I'm thinking we need to reduce the cleanup by just purging the non-autosomal and ancestrals.  Thus, we should probably write a function to do that.
+
+```{r}
+## Funtion to clean data from snp database by 
+## 1. removing those that don't have ancestral alleles determined, and
+## 2. removing those not mapped to an actual chromosome
+snpclean <-function(dat){
+  dat[dat==""] <-NA
+dat <-dat[which(is.na(dat$allele_1)==FALSE),] # remove snps lacking ancestral
+aut <-c(as.character(1:23),"X") # Vector of chromosome names
+dat <-lapply(aut, function (x) dat[which(dat$chr_name==x),]) #do the filtering
+dat <-do.call(rbind.data.frame, dat) #Convert list to data frame
+dat
+}
+```
+Test the function
+```{r}
+test2 <-snpclean(snp.samp.bm)
+```
+
+And that checks out.
+
+```{r}
+test2[1:100,]
+```
+So, what the heck.  While I change cat pans and take a shower, we'll see if we can get the whole set of hapmap snps from the snp database.
+```{r}
+allsnps.bm <-getBM(attributes=c("refsnp_id","chr_name","chrom_start","allele","allele_1"),filters=c("snp_filter"),values=snp.list$marker1,mart=snp.mart)
+```
+Can't do that.  Way too big.  Maybe chromosome by chromosome?  To do that, we'd need to reexecuate our original hapmap query to return.
+
+Alternatively, we start from a hapmap query, with the SNPs returned do a snp base query, and clean up.  But we're confounding two processes here - making geninds and prepping for rehh.  We should work on these separately.
