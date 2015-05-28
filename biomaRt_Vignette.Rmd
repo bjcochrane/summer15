@@ -1,0 +1,138 @@
+---
+title: "Accessing HapMap Data from biomaRt"
+author: "Bruce Cochrane"
+date: "`r format(Sys.Date(),format="%B %d %Y")`"
+output: html_document
+---
+
+Introduction
+=========
+In this vignette, we will use the package biomaRt to access genotype data from [HapMap](http://www.hapmap.org).  We will do the following
+
+1.  Construct a biomaRt query to retrieve genotype data for a random sample of SNPs from the human genome.
+2.  Convert those data to a genind object
+3.  Analyze the ouptut 
+
+Assumptions
+============
+- Assumption 1
+- Assumption 2
+
+Data
+==========
+Links to information about the data if needed e.g. package vignettes.    
+Link to the data to download for the workflow if it is public data or in this repository. Can download into R here and show the code.   
+Format the users data needs to be in for this to work (import data and show a section to demonstrate if needed).  
+
+Resources/Packages required
+=============
+Packages required. Say where these can be found, can link to the list of packages on our repository page here also.   
+
+Loading the required packages:  
+```{r, packages, message=FALSE}
+library(hierfstat)
+library(adegenet)
+library(RCurl)
+library(biomaRt)
+```
+
+Analysis divided into sections  
+==========================================
+Example Sections
+##Section 1: Load the data
+
+First, we need our list of SNPs.  The following command will retrieve a list of 500 SNP names randomly selected from the more than 4 million ones in the HapMap database 
+
+```{r, loaddata, eval=FALSE}
+snps <-read.table(textConnection(getURL("https://dl.dropboxusercontent.com/u/9752688/qpopgen/Summer15Development/DATA/randomsnps.txt")))
+```
+###Section 2.  Constructing a query
+
+A Biomart query has three components:
+
+1.  A **mart** ,or data source
+2.  A set of **attributes**, the information we want to return in each record
+3.  **Filters**, which specify which records we wish to return. In this case, we will use the random snps we have loaded.
+
+Note that you can learn much more about this with the command
+
+    vignette("biomaRt")
+    
+In our case, we will set up the database and specify attributes as follows
+
+
+```{r}
+mart <-useMart("HapMap_rel27",dataset="hm27_variation") #select HapMap release 27 data for all populations
+att <-c("sample_id","pop_id","pop_code_genotype","marker1","genotype") #select filters
+flt <-"marker_name"
+```
+
+And our query is now 
+```{r}
+dat <-getBM(attributes=att,filters=flt,values=snps,mart=mart)
+```
+
+##Section 3: Processing the data
+
+The data in their present form are rather messy; the following steps will clean it up and make it more workable
+
+First, split the data into a list of dataframes with one element for each population
+
+```{r}
+dat.spl <-split(dat,dat$pop_code_genotype)
+```
+
+The following code will create a function that will convert the data into a list of genind objects:
+```{r}
+bmhap2df <-function(df1){
+  indiv <-unlist(strsplit(df1[1,1]," ")) # extract names of individuals
+  snp.ids <-df1$marker1 # extract snp names
+  genos <-df1$genotype # create a variable of the individual genotypes
+  genos.spl <-sapply(genos,strsplit," ") # separate multilocus genotypes into single loci
+  genos.df <-do.call(cbind.data.frame,genos.spl) #convert this to a data frame
+  genos.df[genos.df=="NN"] <-NA #convert missing data to NA
+  rownames(genos.df) <-indiv # name rows
+  colnames(genos.df) <-snp.ids # and columns
+  return(genos.df)
+  
+}
+```
+And now apply the function to our data:
+
+```{r}
+dat.gen <-lapply(dat.spl,bmhap2df)
+```
+
+  
+##Section 3: Summary statistics  
+  
+##Section N: Conclusions drawn from the analysis  
+
+Whats next
+=======================
+Information on further analysis that could be done, other workflows 
+
+###Session Information
+
+```{r,sessioninfo, echo=FALSE}
+sessionInfo()
+```
+### To be deleted
+```{r}
+dat <-load("./DATA/allsnps.txt")
+```
+sample 500
+```{r}
+random.snps <-sample(snp.list$marker1,500)
+```
+Try a quick query
+```{r}
+mart.all <-useMart("HapMap_rel27",dataset="hm27_variation")
+all.dat <-getBM(attributes=c("sample_id","pop_id","pop_code_genotype","marker1","genotype"),filters="marker_name",values=random.snps,mart=mart.all)
+```
+```{r}
+write.table(random.snps,file="./DATA/randomsnps.txt")
+```
+
+
+
