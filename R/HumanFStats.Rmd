@@ -1,0 +1,125 @@
+---
+title: <center>Combining dataframes for genind</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+So with our function of the dat (do.call), we're going to try to make a single multipopulation data frame and do a complete genind analysis.  We'll start with our data from earlier.
+```{r}
+load("./Data/sampsnps.txt")
+```
+We'll also source our function to munge this
+```{r}
+source("./R/bmhap2df.R")
+```
+
+Now we can apply that function to the data
+```{r}
+genos <-lapply(snpdat.samp,bmhap2df)
+```
+Remind ourselves of the structure
+```{r}
+names(genos)
+str(genos[[1]])
+genos[[1]][1:5,1:5]
+```
+So there are two things to do.  First, we need to see if everything can be do.call(rbinded)
+```{r}
+genos.comb <-do.call(rbind.data.frame,genos)
+```
+So the problem with that is that the dimensions differ
+```{r}
+sapply(genos,dim)
+```
+So we need to find the intersection of all 11 sets of data
+```{r}
+snps <-lapply(genos,colnames)
+```
+Now, per R bloggers
+```{r}
+snp.common <-Reduce(intersect,(snps))
+```
+OK!  There are 267.  So do a quick test
+```{r}
+test <-genos[[1]]
+test.2 <-test[,snp.common]
+```
+That's real easy.  So, we will do the following
+```{r}
+genos.2 <-lapply(genos, function (x) x[,snp.common])
+sapply(genos.2,dim)
+```
+OK.  So now we should be able to do.call them
+```{r}
+genos.all <- do.call(rbind.data.frame, genos.2)
+```
+That looks excellent!  Now to make a population vector.
+
+Here are the inputs:
+
+```{r}
+pops <-names(genos.2)
+popsize <-sapply(genos.2,dim)[1,]
+pops;popsize
+```
+```{r}
+popvec <-unlist(lapply(1:11, function (x) rep(pops[x],popsize[x]))
+```
+That looks good.  So to make the genind, we want to do the following
+```{r}
+genos.gen <-df2genind(genos.all,pop=popvec)
+```
+```{r}
+out <-summary(genos.gen)
+```
+And this looks gorgeous!!  So just to complete the basic stats stuff from the nescent procedure, we'll try the following:
+
+```{r}
+library(hierfstat)
+library(HardyWeinberg)
+```
+```{r}
+genos.hf <-genind2hierfstat(genos.gen)
+basicstat <- basic.stats(genos.hf, diploid = TRUE, digits = 2) 
+```
+That looks like fun.
+```{r}
+str(basicstat)
+```
+And do a pca:
+```{r}
+x <-indpca(genos.hf)
+plot(x,cex=0.5,col=c(1:11))
+```
+This is an absolutely fascinating outcome.  We need to work on the visualization, and also to test it with other regions.  But we now have the workflow:
+
+1.  Do the biomaRt query based on the combined database
+2.  Split into a list
+3.  apply bmhap2df to the list
+4.  Find the common snps as above and subset
+5.  do.call to make a dataframe
+6.  Make the population vector
+7.  Make a genind.
+8.  Make a hierfstat object or whatever.
+
+Two last tests
+```{r}
+library(multiNe)
+```
+```{r}
+HENe(genos.gen)
+```
+That function is really sketchy - even with all of this work, we still only have an Ne of 600 or so.
+
+Test for Hardy Weinberg
+
+```{r}
+genos.loc <-genind2loci(genos.gen)
+hw.test(genos.loc,B=100)
+```
+Lots of non hw here.  But remember - this is combined data.
+
