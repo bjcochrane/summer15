@@ -63,7 +63,7 @@ In our case, we will set up the database and specify attributes as follows
 
 ```{r}
 mart <-useMart("HapMap_rel27",dataset="hm27_variation") #select HapMap release 27 data for all populations
-att <-c("sample_id","pop_id","pop_code_genotype","marker1","genotype") #select filters
+att <-c("sample_id","chrom","start", "pop_id","pop_code_genotype","marker1","genotype") #select filters
 flt <-"marker_name"
 ```
 
@@ -76,11 +76,13 @@ dat <-getBM(attributes=att,filters=flt,values=snps,mart=mart)
 
 The data in their present form are rather messy; the following steps will clean it up and make it more workable
 
-First, split the data into a list of dataframes with one element for each population
+### Splitting the data bay population
 
 ```{r}
 dat.spl <-split(dat,dat$pop_code_genotype)
 ```
+
+### Creating a list of Genind objects
 
 The following code will create a function that will convert the data into a list of genind objects:
 ```{r}
@@ -103,8 +105,99 @@ And now apply the function to our data:
 dat.gen <-lapply(dat.spl,bmhap2df)
 ```
 
-  
-##Section 3: Summary statistics  
+At this point, the population-specific data sets can be analyzed individually; i. e.
+
+```{r}
+names(dat.gen)
+chb.gen <- df2genind(dat.gen$ASW)
+summary(chb.gen)
+```
+
+### Creating a multipopulation Genind object
+
+More usefully, perhaps, we could create a single genind object containing data for all 11 populations.  To do so, we have to do the following:
+
+1.  Identify those snps for which there are genotypes in all eleven data sets.
+2.  Combine them into a single data frame.
+3.  Create a vector of population names
+4.  Convert the data frame to a genind object.
+
+Those steps can be performed as follows:
+
+#### Identify common SNPS
+```{r}
+snps.all <-lapply(dat.gen,colnames)
+snps.common <-Reduce(intersect,(snps.all))
+length(snps.common)
+```
+#### Create a combined data frame with data for those snps
+```{r}
+dat.common <-lapply(dat.gen, function (x) x[,snps.common])
+dat.comb <-do.call(rbind.data.frame, dat.common)
+dim(dat.comb)
+```
+And now we have a database of 1207 samples, with 139 snps each.
+
+####  Create a single genind object
+
+The data frame created above has all of the necessary genotype information.  We also need a vector of population sources (one for each sample.)  
+
+```{r}
+pops <-names(dat.common)
+popsize <-sapply(dat.common,dim)[1,]
+npops <-length(dat.common)
+popvec <-unlist(lapply(1:npops, function (x) rep(pops[x],popsize[x])))
+```
+
+Now we create and summarize the genind object:
+
+```{r}
+dat.comb.gen <-df2genind(dat.comb,pop=popvec)
+summary(dat.comb.gen)
+```
+
+##Analysis
+
+At this point, we are following the lead of Stephanie Manel in her "Calculating Basic Population Statistics" vignette.  For example
+
+### Calculation of F statistics
+
+We can use the hierfstat function basic.stats for this:
+
+```{r}
+dat.comb.hf <-genind2hierfstat(dat.comb.gen)
+fstat.basic <-basic.stats(dat.comb.hf,digits=2)
+fstat.basic$overall
+```
+
+### Principal components
+
+```{r}
+x <-indpca(dat.comb.hf,ind.labels=popvec)
+plot(x,cex=.5,col=c(1:npops))
+```
+
+### kmeans clusterig
+```{r}
+dat.clu <-find.clusters(dat.comb.gen,n.pca=3)
+```
+```{r}
+plot(dat.clu$Kstat,type="b")
+```
+### Look at snp distribution
+
+(may want to put this earlier) 
+```{r}
+barplot(table(dat$chrom),las=2)
+```
+
+### Plot Fst by position
+
+```{r}
+par(mfrow=c(5,5))
+
+```
+
   
 ##Section N: Conclusions drawn from the analysis  
 
@@ -133,6 +226,33 @@ all.dat <-getBM(attributes=c("sample_id","pop_id","pop_code_genotype","marker1",
 ```{r}
 write.table(random.snps,file="./DATA/randomsnps.txt")
 ```
+This will be a long shot
+```{r}
+par(mfrow=c(5,5))
+dat.by.snp<-split(dat,dat$marker1)
+dat.by.snp <-dat.by.snp[snps.common]
+```
+This is going to be really hard.  what we need to do is to create a matrix consisting of the chromosome number, location, snp name and Fst.
 
+```{r}
+chrom.number <-sapply (dat.by.snp, function (x) x$chrom[1])
+chrom.pos <-sapply(dat.by.snp, function (x) x$start[1])
+```
 
+```{r}
+fst <- fstat.basic$perloc$Fst
+```
+OK.  Now cbind the whole mess
+```{r}
+dat.chrom <-cbind.data.frame(chrom.number,chrom.pos,fst,row.names=snps.common)
+```
+OK.  Now to do a tapply and plot
+```{r}
+dat.chrom <-split(dat.chrom,dat.chrom$chrom.number)
+```
+OK!  Now lapply a plot
 
+```{r}
+sapply(dat.chrom, function(x) plot(x$chrom.pos,x$fst,xlab=NULL, main=x$chrom.number[1],ylab="Fst"))
+```
+So the above is not all that useful.  Quit for now
