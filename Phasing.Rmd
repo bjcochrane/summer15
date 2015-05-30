@@ -69,6 +69,33 @@ genos.df <-data.frame(t(genos.tmp))
 ```
 Now, just out of curiosity, we can try the imputation
 ```{r}
-genos.hap <-haplo.em(genos.df[,1:10],miss.val="N")
+genos.hap <-haplo.em(genos.df[,1:6],miss.val="N")
 ```
-
+OK.  It works fine with three loci.  We need to examine the output
+```{r}
+str(genos.hap)
+```
+```{r}
+summary(genos.hap)
+```
+```{r}
+genos.hap$haplotype
+```
+look at sample data
+```{r}
+data(hla.demo)
+head(hla.demo)
+```
+Example code
+```{r}
+geno <- hla.demo[,c(17,18,21:24)]
+label <-c("DQB","DRB","B")
+keep <- !apply(is.na(geno) | geno==0, 1, any)
+```
+```{r}
+save.em.keep <- haplo.em(geno=geno[keep,], locus.label=label)
+```
+```{r}
+sum(genos.hap$hap.prob)
+```
+OK.  So that gives us the frequencies of haplotypes; 
