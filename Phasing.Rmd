@@ -1,0 +1,74 @@
+---
+title: <center>Phasing Haplotypes</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+A start at phasing based on r hapmap data.
+
+What we'll do is to try to get 10 snps from 1 population into a matrix and then use it.  I think the procedure will be 
+
+1.  Read some data
+2.  Genindify it.
+3.  loci-ify it
+4.  Modify the STRUCTURE script to generate a matrix
+5.  Run the haplo.em function
+
+```{r}
+library(haplo.stats)
+library(biomaRt)
+```
+```{r}
+listMarts()
+```
+```{r}
+
+hap <-useMart("HapMap_rel27")
+```
+```{r}
+listDatasets(hap)
+```
+```{r}
+mart.yri <-useMart("HapMap_rel27", dataset="hm27_variation_yri")
+```
+
+```{r}
+yri.dat <-getBM(attributes=c("yri_id","marker1"),filters=c("chrom","start","stop"),values=list("chr3",10000000,10050000),mart=mart.yri)
+```
+That's good.  45 snps.  Now we need to to the rest
+```{r}
+colnames(yri.dat)
+head(yri.dat)
+```
+
+So the first we'lll do is make genos as a convenience variable
+
+```{r}
+genos <-(yri.dat$yri_id)
+```
+Now gsub out the spaces
+```{r}
+genos <-lapply(genos, function (x) gsub(" ","",x))
+genos[[1]]
+```
+OK.  Now to split them
+```{r}
+genos <-lapply(genos,strsplit,NULL)
+genos[[1]]
+```
+Let's make the data frame now
+
+
+```{r}
+genos.tmp <-sapply(genos,unlist)
+genos.df <-data.frame(t(genos.tmp))
+```
+Now, just out of curiosity, we can try the imputation
+```{r}
+genos.hap <-haplo.em(genos.df[,1:10],miss.val="N")
+```
+
