@@ -1,0 +1,109 @@
+---
+title: <center>GWAS with genAbel</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+Most of this taken and modified from [GenABEL Tutorial]()
+if necessary
+```{r}
+setwd("./genAbel")
+install.packages("GenABEL")
+```
+```{r}
+library(GenABEL)
+library(GenABEL.data)
+```
+
+```{r}
+data(srdta)
+```
+The following gives the gender of each subject
+```{r}
+male(srdta)
+```
+Check the structure
+```{r}
+str(srdta)
+```
+And a map
+```{r}
+map(srdta)
+```
+I thinkt the following gives the phenotypic data
+```{r}
+head(phdata(srdta))
+```
+and the genotypic
+```{r}
+head(as.character(gtdata(srdta[,1:5])))
+```
+OK.  those are good.  We can subset in sort of the usual way:
+
+```{r}
+ssubs <-srdta[1:5,1:3]
+summary(ssubs)
+```
+So for HW and call rate checking, we can work from the summary table with sumgt
+```{r}
+sumgt <-summary(gtdata(srdta))
+```
+That looks to be a nice simple data frame.  
+```{r}
+hist(sumgt$Pexact)
+```
+```{r}
+hist(sumgt$CallRate)
+```
+### Doing an actual GWAS
+
+Load another gwaa:
+```{r}
+data(ge03d2ex)
+```
+And although I don't like to, we can attach the phenotypic data
+```{r}
+attach(phdata(ge03d2ex))
+```
+#### Now a little bit of exploration of the phenotypes
+```{r}
+descriptives.trait(ge03d2ex)
+```
+separating by cases and controls.
+```{r}
+descriptives.trait(ge03d2ex,by=dm2)
+```
+So dm2 is presence or absence of diabetes.  
+
+#### And the genotypes
+```{r}
+descriptives.marker(ge03d2ex)
+```
+There's a bunch of stuff about testing for HW, which we'll skip for now.
+
+#### Running the GWAS
+This is really clear.  We decide the classification variable (diabetes in this case) and then apply it to the data
+```{r}
+an0 <-qtscore(dm2,ge03d2ex,trait="binomial")
+an0
+```
+Again, more stuff on testing, but we can do a 
+
+#### Manhatten plot
+```{r}
+plot(an0)
+```
+```{r}
+add.plot(an0,df="Pc1df",col=c("lightblue","lightgreen"))
+```
+Not a huge thing to worry about, but it's there.  More importantly
+
+#### Finding the hits
+```{r}
+descriptives.scan(an0)
+```
+There's a lot more to explore, but for the purposes of teaching, the above may be enough.  What we'd like to have is more data!  A possible dryad source on [Bovine tuberculosis(http://datadryad.org/resource/doi:10.5061/dryad.519bm)]; really like the data for [this one on human eye color and HERC2](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2427174/).  However, it looks like human data aren't going to be there - [NIH site](http://www.ncbi.nlm.nih.gov/gap) requires IRB approval etc.
