@@ -1,0 +1,199 @@
+---
+title: <center>Chickens 2: The analysis</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+```{r}
+library(GenABEL)
+```
+
+Now we're going to load the object that we created in the previous script:
+
+```{r}
+setwd("./genAbel")
+load("chicken.gwaa")
+```
+##### Describe the traits
+
+```{r}
+descriptives.trait(chicken.gwaa)
+```
+##### Describe the markers
+
+```{r}
+descriptives.marker(chicken.gwaa)
+```
+Now the real problem at this point is to figure out if we can set up a binary case/control situation based on one of the phenotypes.
+
+We will start by attaching the phenotypes
+```{r}
+attach(phdata(chicken.gwaa))
+```
+Based on histograms, yskin and oocyan appear to be possibly binary.  We can explore a bit
+```{r}
+x <-hist(yskin,plot=FALSE,breaks=11)
+str(x)
+```
+```{r}
+x$counts
+```
+OK.  So yskin looks binary.  I wonder if the qtscore command will work
+```{r}
+test1 <-qtscore(yskin,chicken.gwaa,trait.type="binomial")
+```
+So there is a problem - we have 0, 1, and 9 as trait numbers.  We could treat lump the zeros and 1's, however we won't.  Instead we'll treat this as a gaussian.  In fact, they are in pretty good agreement with a single locus in hardy weinberg
+
+So repeat the analysis with a gaussian distribution
+```{r}
+test2 <-qtscore(yskin, chicken.gwaa,trait.type="gaussian")
+```
+And we can plot it
+```{r}
+plot(test2)
+```
+And it looks like some cleaning is needed.  We can explore
+```{r}
+str(test2)
+```
+Now the interesting thing is that lambda = 1.67, supposedly a measure of stratifation.  it is obatined with a qqplot; the following function gives it
+```{r}
+estlambda(test2[,"P1df"],plot=TRUE)
+```
+And oh my, the departure is stark.  We'll come back to this.
+
+But let's do something else.  First, let's look at the top 10 snps
+```{r}
+res1 <-descriptives.scan(test2)
+```
+```{r}
+str(res1)
+plot(res1$Chromosome,res1$effB)
+```
+A little weird; need to come back to that.  But now let's do the replication thing (will need to read about it)
+```{r}
+test3 <-qtscore(yskin,chicken.gwaa,times=200,quiet=TRUE)
+plot(test3)
+```
+```{r}
+summary(test3)
+```
+Now that cleaned it up a lot.  We can now plot the corrected values as per above
+```{r}
+plot(test3,df="Pc1df")
+```
+
+And now, to a first approximation, we have identified one gene on chromosome 15.  I wonder how this compares to the raw run (without the replication)
+```{r}
+plot(test2,df="Pc1df")
+```
+
+### Quality control
+
+So what we're going to do here is to run a default QC analysis, which will give us a set of markers and individuals to exclude.  We will then subset the data and try the above again.
+```{r}
+qc1 <-check.marker(chicken.gwaa,p.level=0)
+summary(qc1)
+```
+Now, we can create our new data set
+```{r}
+chicken.gw.qc <-chicken.gwaa[qc1$idok,qc1$snpok]
+```
+Now, for ease of analysis, we're going to change the name of this and run through the analyses above.
+```{r}
+chicken.gwaa <-chicken.gw.qc
+```
+As an interesting sidelight, we canlook at the hw status of the cleaned data
+```{r}
+descriptives.marker(chicken.gwaa)
+```
+
+Everything says there is structure here.  We now follow section 5.3.  First, we calculate kinship
+```{r}
+chicken.kin <-ibs(chicken.gwaa[,autosomal(chicken.gwaa)],weight="freq")
+```
+```{r}
+chicken.kin[1:5,1:5]
+```
+OK.  This is cool - we're going to use these data to get a pca plot, which should show us something about structure
+```{r}
+chicken.dist <-as.dist(0.5-chicken.kin)
+chicken.mds <-cmdscale(chicken.dist,k=10)
+plot(chicken.mds)
+```
+And now this is where kmeans clustering comes into play.  We're going to go with k=3 and proceed
+```{r}
+chicken.km <-kmeans(chicken.mds,centers=3,nstart=1000)
+cl.nms <-lapply(c(1:3), function (x) names(which(chicken.km$cluster==x)))
+```
+And this goes on and on (and the pressure washing awaits).  But what is nice is that at least we see that there is an ethiopian cluster.  And I wonder if there is a way to determine the most likely value of k.  That will wrap it up for the day.
+
+### 06/16
+
+Now, having run through the exercise, I'm wondering if we can make the stratification work.  First, let's do a gwas on what we have so far
+```{r}
+detach(phdata(chicken.gwaa))
+attach(phdata(chicken.gwaa))
+gwas1 <-qtscore(whitelobes,chicken.gwaa,trait.type="gaussian")
+plot(gwas1)
+lambda(gwas1)
+```
+Now here is the problem.  In the example, stratification was based on two groups; here we have three.  What we want to do is to create a numerical variable of 0,1,2 for the three strata.  A little exploration:
+
+Actually, I'm thinking that maybe the kmeans has already done that for us.  Let's create pop as follows:
+
+```{r}
+pop <-chicken.km$cluster
+```
+Now, maybe we can use that as a stratifier
+```{r}
+gwas2 <-qtscore(whitelobes,chicken.gwaa,trait.type="gaussian",strata=pop)
+lambda(gwas2)
+```
+Seems to work.  Now we can compare
+```{r}
+par(mfrow=c(2,1))
+plot(gwas1)
+plot(gwas2)
+```
+That does have some effect, but it is not enormous
+```{r}
+lambda(gwas1)
+```
+#### Scale by principle components
+
+We've already calculated thes above; edited above to give 10
+```{r}
+chicken.mds[1:5,]
+```
+And now we can stratify by the firs three
+```{r}
+gwas3 <-qtscore(whitelobes~chicken.mds[,1]+chicken.mds[,2]+chicken.mds[,3],chicken.gwaa,trait.type="gaussian")
+lambda(gwas3)
+```
+```{r}
+plot(gwas3)
+```
+#### Do the whole heritability thing
+
+First, determine heritability
+```{r}
+h2a <-polygenic(yskin,chicken.gwaa,kin=chicken.kin)
+h2a$esth2
+```
+Wow!  The heritability is 1!  I wonder if another phenotype would be better
+```{r}
+descriptives.trait(chicken.gwaa)
+```
+
+As a last little test we will to mixed modelling
+```{r}
+gwas3.mm <-mmscore(h2a,chicken.gwaa)
+lambda(gwas3.mm)
+```
+And that, my friends

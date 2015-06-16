@@ -1,0 +1,79 @@
+---
+title: <center>To Complete Summer 2015</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Global objectives
+
+1.  Make writing presentable throughout
+2.  Get data access functions (especially biomaRt) in order
+3.  GWAS writeup
+4.  Finish published version and web site
+5.  Make github use intuitive.
+6.  Explore msms on Redhawk
+
+### Non R stuff
+
+#### 206
+
+1.  Identify online resources
+2.  Set up assignment modules
+3.  Concept mapping (if we do paper)
+4.  Guide for phylum project
+
+#### 342
+
+1.  Develop GWAS
+2.  Develop Quantitative Genetics
+3.  Pedigrees
+
+
+
+### Files in Progress
+
+#### biomaRt
+
+##### R Markdown
+
+1.  [Vignette](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/biomaRt_Vignette.Rmd)  
+Vignette for submission to NESCENT project.
+2.  [SNP Data Munging 1](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/BuildSNPData.Rmd)  
+3.  [SNP Data Munging 2](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/BiomaRtToGenind.Rmd)
+Some more work on splitting up genotype data and making it usable.
+Basics for retrieving datat and splitting the genotypes
+3.  [SNP Data munging 3](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/SnpDataCreate.Rmd)
+Very preliminary - work on getting list of names from SNP data base, with ancestral alleles identified, that can then be used to screen hapmap haplotype data
+3.  [Human F Statistics](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/HumanFStats.Rmd)
+Reads multipopulational data and gets as far as pca analysis on genotypes
+
+##### Functions
+
+1. [snpclean](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/R/snpclean.R)
+Cleans raw returned data from snp database, removing ones lacking ancestrals and those not mapped to chromosome
+2.  [bmhap2df](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/R/bmhap2df.R)
+Converts hapmap data to dataframe, suitable for conversion to genind object.
+
+#### GenAbel
+
+1. [Exploratory file](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/genAbel/GenAbelExploration.Rmd)  
+Working through sample files.  Note that this changes the working directory to ./genAbel
+2.  [Chickens](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/genAbel/Chickens.Rmd)  
+Data from a study of village and wilde chickens - hopefully useful 342 demo.  Concludes with saving gwaa object (6/13)
+3.  [Chickens2](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/genAbel/Chicken2.Rmd)  
+06/15 - worked through the tutorial as far as detecting structure is concerned.  Will want to continue on this thread for a while. 06/16 - carried through stratification analysis; concluded we need to look elsewhere for data.   
+4. [Stratification](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/genAbel/StratificationExample.Rmd)  
+Worked through chapter 7 examples with the base data set (only containing outliers).
+5.  [Simulating GWAS Data](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/SimulateGWAS.Rmd)  
+Rough beginning to using Hapgen2 to create synthetic data.  Substantial data munging problem, but if we get it, we're in great shape.
+
+#### Nescent
+
+1.  [Nescent 1](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/Nescent.Rmd)
+Very preliminary stuff
+2.  [Nescent2](https://dl.dropboxusercontent.com/u/9752688/QPopgen/Summer15Development/NescentMaster.Rmd)
+More detailed stuff on using Nescent github resources

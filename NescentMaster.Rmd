@@ -1,0 +1,69 @@
+---
+title: <center>Nescent Master Script</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Objective
+
+I need a way to keep track of what's going on with the R Hackathon development.  First of all, I need to track down their central website.  Then, I need to install packages of interest.  Finally, I may want to follow their instructions to clone the appropriate repo and develop workflows.
+
+#### Setting up for future submission of workflows
+
+Set up git in NescentPopHack, cloned the worklow repo as descibed [here](http://nescent.github.io/popgenInfo/index.html).  Repo is https://github.com/NESCent/popgenInfo.git; also forked on github.  Save that for future use; will also need to run the upgrade script often.
+
+So what we'll do is whenever we have an Rmd file we want to contribute, we can move it to the use directory there.  At that point, from the branch BruceCochrane we'll add/commit it, and then push and all of that other stuff.
+
+Note that there is an Rmd template file available for use.  
+
+
+#### Installation of current developmental packages
+
+```{r}
+library(devtools)
+```
+
+So the packages we want are the simulation one, Ne, 
+
+[Wiki from Hackathon with Links](https://github.com/NESCent/r-popgen-hackathon/wiki)
+```{r}
+install_github("christianparobek/skeleSim")
+```
+OK.  That one is not an R package.  I think we need to clone it.
+
+So we have those functions in a subfolder of the Nescent directory.  I'll fork his repository just for the heck of it.
+
+There is also a packge on multivariate statistics, (MINOTAUR), but we'll let that one be for now.
+
+Finally, the Ne package.  
+
+```{r}
+#install.packages("INLA", repos="http://www.math.ntnu.no/inla/R/stable")
+install_github("georgeshirreff/multiNe")
+```
+```{r}
+library(multiNe)
+```
+```{r}
+vignette(package="multiNe")
+```
+Another [cool page with data](https://github.com/NESCent/r-popgen-hackathon/wiki/Datasets)
+
+Which gives me an idea.  Access human SNP data and do Ne calculation:
+
+```{r}
+library(adegenet)
+data(eHGDP)
+(eHGDP)
+```
+OK.  It's a genind.  So we can do an Ne calculaeion
+```{r}
+HENe(eHGDP)
+```
+So it works.  And it looks like there's a lot more that can be done - e. g. hierfstat etc.
+
+So right now, it looks like what is usable in the project is ms2ms and HENe; hopefully we'll find more.  But at the very least, we can either simulate data and calculate Ne from it, or we can get real data (either from the package or from the real world) and go from there.

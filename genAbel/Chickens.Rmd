@@ -1,0 +1,92 @@
+---
+title: <center>GWAS - Bovine Tuberculosis</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+This will be performed in its own working directory, and will require genABEL and rdryad.
+
+```{r}
+setwd("./genAbel")
+library(genABEL)
+library(rdryad)
+```
+### Read the data
+
+Source is at [http://datadryad.org/resource/doi:10.5061/dryad.996cr8f0](http://datadryad.org/resource/doi:10.5061/dryad.996cr8f0); data on wild and village chickens (the bovine TB data didn't work)
+
+```{r}
+phen.url <-download_url(id="10255/dryad.37611")
+gen.url <-download_url(id="10255/dryad.37610")
+phen.dat <-dryad_getfile(phen.url)
+gen.dat <-dryad_getfile(gen.url)
+```
+OK.  These data are loaded.   Note that the gendata took a long time.  We'll probably want to save this locally while we work on it:
+
+```{r}
+chicken.dat <-list(gen.dat,phen.dat)
+save(chicken.dat,file="chicken.dat")
+```
+So a note on the data.  There appear to be 130 sexed chickens and five phenotypes.  The genotype data consists of a snp id, followed by chromosome, position, and one column for each chicken.  Pretty straightforward.  When we return, we will begin the analysis
+
+```{r}
+descriptives.trait(phen.dat)
+```
+
+General call for an analysis
+```{r}
+an.ysk <-qtscore(phen.dat$yskin,gen.dat,trait="binomial")
+```
+OK.  Need to do this a bit differently
+```{r}
+write.table(gen.dat,file="chicken.gen.dat",quote=FALSE,row.names=FALSE)
+write.table(phen.dat,file="chicken.phen.dat")
+```
+Now convert the genotypes.
+```{r}
+load.gwaa.data(genofile="chicken.gen.dat",phenofile="chicken.phen.dat")
+```
+OK.  I wonder if we transpose the genetic data, will it work any better
+```{r}
+test <-t(gen.dat)
+test[1:10,1:5]
+```
+One more try
+```{r}
+test <-convert.snp.illumina("chicken.gen.dat","chicken.gen.gt")
+```
+That seemed to work.  So now we want to do the load gwaa thing
+```{r}
+dat.gwaa <-load.gwaa.data(genofile="chicken.gen.gt",phenofile="chicken.phen.dat")
+
+```
+Yes!!  Now we can do a quickie analysis and then call it a day!
+
+```{r}
+attach(phdata(dat.gwaa))
+```
+Now we should be able to run a model.
+```{r}
+an.ysk <-qtscore(yskin,dat.gwaa,trait="guess")
+```
+And to get a plot
+```{r}
+plot(an.ysk)
+```
+There's a lot that needs to be cleaned up about this, but it certainly is a start.  What we want to get is
+
+1.  Appropriately cleaned data
+2.  some estimate of effect size
+3.  Comparison to reported results.
+
+Finally, we can save the gwaa to use in the future
+```{r}
+chicken.gwaa <-dat.gwaa
+save(chicken.gwaa,file="chicken.gwaa")
+```
+

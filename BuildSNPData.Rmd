@@ -30,7 +30,7 @@ library (biomaRt)
 ```
 Set up the mart and construct a query of snp names
 ```{r}
-hap.mart <-useMart("HapMap_rel27",dataset="hm27_variation")
+mart.all<-useMart("HapMap_rel27",dataset="hm27_variation")
 listAttributes(mart.all)
 ```
 ```{r}
@@ -39,7 +39,8 @@ listFilters(mart.all)
 
 Now see if we can do an unfiltered querie
 ```{r}
-snp.list <-getBM(attributes="marker1",mart=hap.mart)
+snp.ch6.list <-getBM(attributes=c("marker1","chrom","start"),mart=mart.all,filter="chrom",value="chr6")
+save (snp.ch6.list,file="./Data/snp.ch6.list")
 ```
 Note that this takes a LONG time.  We need to save the list once we have it.
 
@@ -218,5 +219,8 @@ Probably that's all for now.  The big problems remaining
 ```{r}
 snpdat.samp <-dat.spl
 save(snpdat.samp,file="./DATA/sampsnps.txt")
+```
+```{r}
+library(hapmap500knsp)
 ```
 

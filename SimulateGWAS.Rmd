@@ -1,0 +1,53 @@
+---
+title: <center>Simulating GWAS data</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+### Objective
+
+What we want to do is to create a simulated situation, in which we use hapmap data and a phony phenotype.  It appears that we can do this, mostly out of R by using HAPGEN2 and data available from IMPUTE.  Web sites are below:
+
+1.  HapGen2 [https://mathgen.stats.ox.ac.uk/genetics_software/hapgen/hapgen2.html](https://mathgen.stats.ox.ac.uk/genetics_software/hapgen/hapgen2.html)
+2.  IMPUTE Data [https://mathgen.stats.ox.ac.uk/impute/impute_v1.html#Using_IMPUTE_with_the_HapMap_Data](https://mathgen.stats.ox.ac.uk/impute/impute_v1.html#Using_IMPUTE_with_the_HapMap_Data)
+
+There is also a package to simulate phenotypes.  Zipped file is in directory, however installation failed (lacks NameSpace file)  But I fixed it by creating a file, rezipping and installing from RStudio
+
+```{r}
+library(SimulatePhenotypes)
+```
+Now this bears some exploring.  In particular,  it appears to allow executions of hapgen2 from R, as long as the executable is installed.  That runs, and we've copied it into the summer directory.  What we need to do is to
+
+1. Download the hapmap data
+2.  
+```{r}
+data(example.hapgen2.simulated.gen)
+```
+```{r}
+dat <- example.hapgen2.simulated.gen
+dat[1:10,1:20]
+```
+OK.  So the data are simply snps and genotypes in an array.  now, continuing with the example, let's see what happens when we stick in a couple of disease snps.
+```{r}
+prob.disease = twoSnpInteractionModel1(alpha = 0.05, theta1 = 0.2, theta2 = 0.3)
+ph <-simulateDiscretePhenotypes(disease.snps.pos = c(2061200, 2429545),
+                           prob.disease = prob.disease,
+                           simulated.genotype.data = example.hapgen2.simulated.gen)
+```
+OK.  What that does is to give us a vector of zeros and 1's. for controls and cases.  So the genotype data are in the original element - just need to get them formatted.  And the phenotypes should be easy.
+
+Regarding the genotype data, we appear to have five columns of identifiers, followed by three for each subject:
+
+1 0 0 - homozgote 1
+0 1 0 - homozygote 2
+0 0 1 - homozygote 3
+
+And it also, incidentally, looks like running from the command line can give more flexibility in assigning phenotypes.  But we'll stick with the two locus stuff for now.
+```{r}
+load("RData/ImputedDataAnalysis.RData")
+```
+

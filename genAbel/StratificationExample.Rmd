@@ -1,0 +1,119 @@
+---
+title: <center>Chapter 7 - Incorporation of Stratification</center>
+author: <center>Bruce Cochrane</center>
+date: <center>`r format(Sys.Date(),format="%B %d %Y")`</center>
+output: 
+    html_document:
+       css: Chapter.css
+       toc: yes
+       toc_depth: 5
+---
+
+### Background
+
+So in the chicken example, we have rather nice evidence for there being stratification - (although we haven't looked a t relatedness among individuals within populations.).  How we address that problem is dealt with in chapter 7 of the tutorial; for starters's we'll walk through some of the exercise.  However, to do so requires we generate some data following steps in chapter 5.
+
+### Getting data1
+
+```{r}
+library(GenABEL)
+library(GenABEL.data)
+data(ge03d2ex)  
+```
+Now do the basic qc on this:
+```{r}
+qc1 <- check.marker(ge03d2ex, p.level=0)
+```
+```{r}
+ data1 <- ge03d2ex[qc1$idok, qc1$snpok]
+data1 <-Xfix(data1)
+```
+Attach the data
+```{r}
+attach(phdata(data1))
+```
+Now skip over the checks (we'll assume they're ok) and get the kinship matrix
+```{r}
+data1.gkin <-ibs(data1[,autosomal(data1)],weight="freq")
+```
+Do a pca on this just for grins
+```{r}
+data1.dist <-as.dist(0.5-data1.gkin)
+data1.mds <-cmdscale(data1.dist)
+plot(data1.mds)
+```
+So now what we'll do in this case is to use kmeans clustering, id the two clusters, and generate vectors of names of the two clusteds
+```{r}
+mk<-kmeans(data1.mds,centers=2,nstart=1000)
+cl1 <-names(which(mk$cluster==1))
+cl2 <-names(which(mk$cluster==2))
+cl1
+```
+Note that in the above, the two could come out reversed; there is code to adjust for that in the tutorial.  we got it right (cl1 is outliers) so we will continue.
+
+Now make a data set without the outliers
+```{r}
+data2 <-data1[cl2,]
+```
+Do QC
+```{r}
+qc2 <- check.marker(data2, hweids=(phdata(data2)$dm2==0), fdr=0.2)
+```
+```{r}
+summary(qc2)
+```
+Now drop the failed markers (looks like all do to MAF)
+```{r}
+data2 <-data2[qc2$idok,qc2$snpok]
+```
+Now again there are the usual descriptives to run, but we will cut to the chase.
+
+```{r}
+detach(phdata(data1))
+attach(phdata(data2))
+```
+
+```{r}
+data2.qt <-qtscore(dm2,data2,trait="binomial")
+```
+And there's actually a lot more good stuff (e. g. on stratifying by other traits like bmi), but we'll save that for a future date.  Now we have all the variables we need to save (and to go to our chapter 7 workup)
+```{r}
+save(data1,cl1,data1.gkin,data2.qt,file="data1.RData")
+```
+### Doing our analysis
+
+```{r}
+## load(data1.RData) #necessary only if starting fresh from here.
+```
+Now we follow along, per pg. 167.
+
+#### Do overall run and check lambda
+
+```{r}
+data1.qt <-qtscore(dm2,data1,trait="binomial")
+lambda(data1.qt)
+```
+```{r}
+cl1
+```
+That's ok.  Now we're going to isolate those cases as a population
+```{r}
+pop <-as.numeric(idnames(data1) %in% cl1)
+table(pop,phdata(data1)$dm2)
+```
+And with that, we can do the stratification:
+```{r}
+data1.sa <-qtscore(dm2,data=data1,strata=pop, trait="binomial")
+lambda(data1.sa)
+```
+We can plot the differences as follows
+```{r}
+par(mfrow=c(2,1))
+plot(data1.qt)
+plot(data1.sa)
+```
+Now this goes on and on, but I'm wondering if we could stop at this point and go back to the chickens.
+```{r}
+detach(phdata(data2))
+```
+
